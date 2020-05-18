@@ -515,6 +515,11 @@ b &       b &     b \\
 \toprule
 {} &  a &   b \\
 \midrule
+\endfirsthead
+\caption[]{a table in a \texttt{longtable} environment}\\
+\toprule
+{} &  a &   b \\
+\midrule
 \endhead
 \midrule
 \multicolumn{3}{r}{{Continued on next page}} \\
@@ -533,8 +538,13 @@ b &       b &     b \\
         result_l = df.to_latex(longtable=True, label=the_label)
 
         expected_l = r"""\begin{longtable}{lrl}
-\label{tab:longtable}\\
 \toprule
+\label{tab:longtable}\\
+{} &  a &   b \\
+\midrule
+\endfirsthead
+\toprule
+\label{tab:longtable}\\
 {} &  a &   b \\
 \midrule
 \endhead
@@ -556,6 +566,11 @@ b &       b &     b \\
 
         expected_cl = r"""\begin{longtable}{lrl}
 \caption{a table in a \texttt{longtable} environment}\label{tab:longtable}\\
+\toprule
+{} &  a &   b \\
+\midrule
+\endhead
+\caption[]{a table in a \texttt{longtable} environment}\\
 \toprule
 {} &  a &   b \\
 \midrule
