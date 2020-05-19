@@ -119,70 +119,25 @@ class LatexFormatter(TableFormatter):
         else:
             column_format = self.column_format
 
-        if self.longtable:
-            self._write_longtable_begin(buf, column_format)
-        else:
-            self._write_tabular_begin(buf, column_format)
-
-        buf.write("\\toprule\n")
-
         ilevels = self.frame.index.nlevels
         clevels = self.frame.columns.nlevels
         nlevels = clevels
         if self.fmt.has_index_names and self.fmt.show_index_names:
             nlevels += 1
+
         strrows = list(zip(*strcols))
         self.clinebuf: List[List[int]] = []
 
+        head_buf = []
+
+        if self.longtable:
+            self._write_longtable_begin(buf, column_format)
+        else:
+            self._write_tabular_begin(buf, column_format)
+
         for i, row in enumerate(strrows):
-            if i == nlevels and self.fmt.header:
-                buf.write("\\midrule\n")  # End of header
-                if self.longtable:
-                    buf.write("\\endhead\n")
-                    buf.write("\\midrule\n")
-                    buf.write(
-                        f"\\multicolumn{{{len(row)}}}{{r}}"
-                        "{{Continued on next page}} \\\\\n"
-                    )
-                    buf.write("\\midrule\n")
-                    buf.write("\\endfoot\n\n")
-                    buf.write("\\bottomrule\n")
-                    buf.write("\\endlastfoot\n")
-            if self.escape:
-                # escape backslashes first
-                crow = [
-                    (
-                        x.replace("\\", "\\textbackslash ")
-                        .replace("_", "\\_")
-                        .replace("%", "\\%")
-                        .replace("$", "\\$")
-                        .replace("#", "\\#")
-                        .replace("{", "\\{")
-                        .replace("}", "\\}")
-                        .replace("~", "\\textasciitilde ")
-                        .replace("^", "\\textasciicircum ")
-                        .replace("&", "\\&")
-                        if (x and x != "{}")
-                        else "{}"
-                    )
-                    for x in row
-                ]
-            else:
-                crow = [x if x else "{}" for x in row]
-            if self.bold_rows and self.fmt.index:
-                # bold row labels
-                crow = [
-                    f"\\textbf{{{x}}}"
-                    if j < ilevels and x.strip() not in ["", "{}"]
-                    else x
-                    for j, x in enumerate(crow)
-                ]
-            if i < clevels and self.fmt.header and self.multicolumn:
-                # sum up columns to multicolumns
-                crow = self._format_multicolumn(crow, ilevels)
-            if i >= nlevels and self.fmt.index and self.multirow and ilevels > 1:
-                # sum up rows to multirows
-                crow = self._format_multirow(crow, ilevels, i, strrows)
+            crow = self._format_row(buf, clevels, i, ilevels, nlevels, row,
+                                    strrows)
             buf.write(" & ".join(crow))
             buf.write(" \\\\\n")
             if self.multirow and i < len(strrows) - 1:
@@ -192,6 +147,47 @@ class LatexFormatter(TableFormatter):
             self._write_longtable_end(buf)
         else:
             self._write_tabular_end(buf)
+
+    def _format_row(self, buf, clevels, i, ilevels, nlevels, row, strrows):
+        if i == nlevels and self.fmt.header:
+            buf.write("\\midrule\n")  # End of header
+            if self.longtable:
+        if self.escape:
+            # escape backslashes first
+            crow = [
+                (
+                    x.replace("\\", "\\textbackslash ")
+                        .replace("_", "\\_")
+                        .replace("%", "\\%")
+                        .replace("$", "\\$")
+                        .replace("#", "\\#")
+                        .replace("{", "\\{")
+                        .replace("}", "\\}")
+                        .replace("~", "\\textasciitilde ")
+                        .replace("^", "\\textasciicircum ")
+                        .replace("&", "\\&")
+                    if (x and x != "{}")
+                    else "{}"
+                )
+                for x in row
+            ]
+        else:
+            crow = [x if x else "{}" for x in row]
+        if self.bold_rows and self.fmt.index:
+            # bold row labels
+            crow = [
+                f"\\textbf{{{x}}}"
+                if j < ilevels and x.strip() not in ["", "{}"]
+                else x
+                for j, x in enumerate(crow)
+            ]
+        if i < clevels and self.fmt.header and self.multicolumn:
+            # sum up columns to multicolumns
+            crow = self._format_multicolumn(crow, ilevels)
+        if i >= nlevels and self.fmt.index and self.multirow and ilevels > 1:
+            # sum up rows to multirows
+            crow = self._format_multirow(crow, ilevels, i, strrows)
+        return crow
 
     def _format_multicolumn(self, row: List[str], ilevels: int) -> List[str]:
         r"""
@@ -303,6 +299,7 @@ class LatexFormatter(TableFormatter):
             pass
 
         buf.write(f"\\begin{{tabular}}{{{column_format}}}\n")
+        buf.write("\\toprule\n")
 
     def _write_tabular_end(self, buf):
         """
@@ -340,6 +337,7 @@ class LatexFormatter(TableFormatter):
         """
         buf.write(f"\\begin{{longtable}}{{{column_format}}}\n")
 
+        # format the first head
         if self.caption is not None or self.label is not None:
             if self.caption is None:
                 pass
@@ -357,6 +355,32 @@ class LatexFormatter(TableFormatter):
             buf.write("\\\\\n")
         else:
             pass
+        buf.write("\\toprule\n")
+        # buf.write(head_rows)
+        buf.write("\\midrule\n")
+        buf.write("\\endfirsthead\n")
+
+        # format the other heads
+        if self.caption is None:
+            pass
+        else:
+            buf.write(f"\\caption[]{{{self.caption}}}")
+            buf.write("\\\\\n")
+
+        buf.write("\\toprule\n")
+        # buf.write(head_rows)
+        buf.write("\\midrule\n")
+        buf.write("\\endhead\n")
+
+        buf.write(
+            f"\\multicolumn{{{len(row)}}}{{r}}"
+            "{{Continued on next page}} \\\\\n"
+        )
+        buf.write("\\midrule\n")
+        buf.write("\\endfoot\n\n")
+        buf.write("\\bottomrule\n")
+        buf.write("\\endlastfoot\n")
+
 
     @staticmethod
     def _write_longtable_end(buf):
