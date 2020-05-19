@@ -61,6 +61,9 @@ class TestToLatex:
         assert withoutindex_result == withoutindex_expected
 
     def test_to_latex_format(self, float_frame):
+        with pytest.raises(AssertionError):
+            float_frame.to_latex(column_format=666)
+
         # GH Bug #9402
         float_frame.to_latex(column_format="ccc")
 
