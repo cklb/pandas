@@ -111,7 +111,7 @@ class LatexFormatter(TableFormatter):
             if self.fmt.index:
                 index_format = "l" * self.frame.index.nlevels
                 column_format = index_format + column_format
-        elif not isinstance(self.column_format, str):  # pragma: no cover
+        elif not isinstance(self.column_format, str):
             raise AssertionError(
                 f"column_format must be str or unicode,"
                 f" not {type(self.column_format)}"
